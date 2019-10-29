@@ -1,0 +1,22 @@
+
+let shift = {
+            interStr: 0,
+            fromStarIndexes: 0,
+            //shiftedString: 0
+        };
+
+
+        findCommonStartByteIndexes(startIndexes)
+    {
+        let commomIndexFounded = false;
+        for (let i = startIndexes[0]; i < this.data1.completeData.length && !commomIndexFounded; i++)
+        for (let j = startIndexes[1]; j < this.data2.completeData.length && !commomIndexFounded; j++)
+            if(this.data1.completeData[i] === this.data2.completeData[j])
+            {
+                commomIndexFounded = true;
+                startIndexes[0] = i;
+                startIndexes[1] = j;
+            }
+
+        return commomIndexFounded;
+    }

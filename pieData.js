@@ -1,5 +1,10 @@
 class PieData{
     
+    // completeData;
+    // codedData;
+    // mapType;
+
+
     constructor(buffer){
         this.completeData=buffer;
         this.codedData = [];
@@ -13,6 +18,22 @@ class PieData{
         }
         console.log(enumBytesStr);
         
+    }
+    get getHexString()
+    {
+        return this.completeData.toString('hex');
+    }
+    set codedData(codeData)
+    {
+        this.codeData = codeData;
+    }
+    get codedData()
+    {
+        return this.completeData.toString('hex');
+    }
+    get codeIndexes()
+    {
+        return this.completeData.toString('hex');
     }
 }
 

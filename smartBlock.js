@@ -9,6 +9,10 @@ class SmartBlock{
     {
         return this.code.toString('16');
     }
+    get getTextHexString()
+    {
+        return this.text.toString('hex');
+    }
 }
 
 SmartBlock.nextCode = 1;
