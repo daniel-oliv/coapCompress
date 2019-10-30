@@ -17,20 +17,58 @@ class Compressor
             this.data2 = data1; 
         }
         
+        /// for keep common blocks considering data1 and 2
         this.smartBlocks = [];
+        ///just the bigger blocks
+        this.dictionary = [];
+
         this.currentStartShift = Compressor.shiftDepths[0];
         Compressor.shiftDepths.push(data1.completeData.length);
         Compressor.shiftInterStrDepths.push(data1.completeData.length);
     }
 
-    appendToAndValidateDepths(biggerLenght)
+    getDescendingSizeSmartBlocks()
+    {
+        let ordered = [];
+        let insertedElement = true; /// since the firt element will be added by default
+        if(this.smartBlocks.length === 0)
+        {
+            return ordered;
+        }
+
+        /// if it is not empty
+        ordered.push(this.smartBlocks[0])
+        for (const sb of this.smartBlocks) 
+        {
+            for (const sbOrdered of ordered) 
+            {
+                /// if sb is bigger than the current sbOrdered, insert sb before
+                if(sb.getBuffer.length > sbOrdered.getBuffer.length)
+                {
+                    ordered.splice(ordered.indexOf(sbOrdered), 0, sb);
+                    insertedElement = true;
+                    break;
+                }
+            }
+            
+            /// if it was not inserted, push it at the end, since it is the smallest til now
+            if (insertedElement === false) 
+            {
+                ordered.push(sb);
+            }
+            insertedElement = false;
+        }
+        return ordered;
+    }
+
+    appendToAndValidateDepths(biggerLength)
     {
         let inserted = false;
         for (const key in Compressor.shiftDepths) 
         {
-            if(Compressor.shiftDepths[key] >= biggerLenght)
+            if(Compressor.shiftDepths[key] >= biggerLength)
             {
-                Compressor.shiftDepths[key] = biggerLenght;
+                Compressor.shiftDepths[key] = biggerLength;
                 Compressor.shiftDepths.length = parseInt(key)+1;
             }
         }
@@ -151,8 +189,8 @@ class Compressor
             if(!commonBytesFounded || endSearch)
             {
 ////////////////
-                console.log(this.smartBlocks);
-                return;
+                //console.log(this.smartBlocks);
+                break;
             }
             let endDataReached = this.findNextDiffBytesIndexes(commonStart, currentDiff);
             //console.log(currentDiff);
@@ -168,8 +206,8 @@ class Compressor
                 //console.log("end1[" + i1 + "]   end2[" + i2 + "]");
                 endSearch=true;
 ////////////////
-                console.log(this.smartBlocks);
-                return;
+                //console.log(this.smartBlocks);
+                break;
             }
             
             commonStart[0] = currentDiff[0];
@@ -183,7 +221,21 @@ class Compressor
             // TESTE++;
             //console.log("next commom start ", commonStart);
         }
+        /// ordering smartBlocks from smaller to bigger blocks
+        //console.log("smartBlocks", this.smartBlocks);
+        this.smartBlocks = this.getDescendingSizeSmartBlocks();
+        
+        //console.log("smartBlocks", this.smartBlocks);
+        //console.log("getDicBlocksInData ", this.getDicBlocksInData(this.data1.completeData));
+
+        let dicBlocksPresent = this.getDicBlocksInData(this.data1.completeData)
+        //console.log("getBlockClasses ", this.getBlockClasses(dicBlocksPresent, this.data1.completeData));
+        let codeBlocksLength, dataBlocksLength, indexMap;
+        [codeBlocksLength, dataBlocksLength, indexMap] = this.getBlockClasses(dicBlocksPresent, this.data1.completeData);
+        console.log("indexMap ", indexMap);
     }
+
+
     compress(data){
         let reminderText = data.getHexString;
         let compressed = reminderText;
@@ -207,6 +259,127 @@ class Compressor
         }
     }
 
+    getDicBlocksInData(dataBuffer)
+    {
+        let dicBlocksPresent = [];
+        let initSearch = 0;
+        let tempIndex = 0;
+        for (const sb of this.smartBlocks) 
+        {
+            initSearch = 0;
+            do  
+            {
+                tempIndex = dataBuffer.indexOf(sb.getBuffer, initSearch);  
+                if(tempIndex >= 0)
+                {
+                    initSearch = sb.getBuffer.length + tempIndex; 
+                    if(!this.hasAlreadyMatched(dicBlocksPresent, tempIndex)) 
+                    {
+                        let presentBl = {startIndex: tempIndex, endIndex: initSearch, block: sb};
+                        dicBlocksPresent.push(presentBl);
+                    }
+                }
+            }
+            while(tempIndex >= 0)
+        }
+
+        return dicBlocksPresent;
+    }
+
+    hasAlreadyMatched(dicBlocksPresent, index)
+    {
+        for (const presentBl of dicBlocksPresent) {
+            if( index >= presentBl.startIndex && index < presentBl.endIndex ) /// end exclusive
+                return true;
+        }
+        return false;
+    }
+
+    getOrderedDicBlocksPresent(dicBlocksPresent)
+    {
+        let ordered = [];
+        let insertedElement = true; /// since the firt element will be added by default
+        if(dicBlocksPresent.length === 0)
+        {
+            return ordered;
+        }
+
+        /// if it is not empty
+        ordered.push(dicBlocksPresent[0])
+        for (const objc of dicBlocksPresent) 
+        {
+            for (const objcOrdered of ordered) 
+            {
+                /// if sb is bigger than the current sbOrdered, insert sb before
+                if(objc.startIndex < objcOrdered.startIndex)
+                {
+                    ordered.splice(ordered.indexOf(objcOrdered), 0, objc);
+                    insertedElement = true;
+                    break;
+                }
+            }
+            
+            /// if it was not inserted, push it at the end, since it is the smallest til now
+            if (insertedElement === false) 
+            {
+                ordered.push(objc);
+            }
+            insertedElement = false;
+        }
+        return ordered;
+    }
+
+    getBlockClasses(dicBlocksPresent, dataBuffer)
+    {
+        dicBlocksPresent = this.getOrderedDicBlocksPresent(dicBlocksPresent);
+        let codeBlocksLength = [];
+        let dataBlocksLength = [];
+        let indexMap = [];
+        let pbIndex = 0
+        for (let index = 0; index < dataBuffer.length; index++)
+        {
+            for (; pbIndex < dicBlocksPresent.length; pbIndex++)
+            {
+                let presentBl = dicBlocksPresent[pbIndex];
+                if(!this.isInsideTheBlock(presentBl, index))
+                {
+                   let dataBlockLen =  presentBl.startIndex - index;
+                   if(!dataBlocksLength.includes(dataBlockLen))
+                   {
+                        dataBlocksLength.push(dataBlockLen);
+                   }
+                   index += dataBlockLen;
+                   indexMap.push( {length: dataBlockLen, type: "data"} );
+                }
+                let blockLen =  presentBl.block.getBuffer.length;
+                if(!codeBlocksLength.includes(blockLen))
+                {
+                    codeBlocksLength.push(blockLen);
+                }
+                indexMap.push( {length: blockLen, type: "coded"} );
+                index += blockLen;
+            }           
+                       
+        }
+
+        return [codeBlocksLength, dataBlocksLength, indexMap];
+    }
+
+    isBeforeTheBlock(presentBl, index)
+    {
+        return (index < presentBl.startIndex);
+    }
+
+    isInsideTheBlock(presentBl, index)
+    {
+        return (index >= presentBl.startIndex && index < presentBl.endIndex); ///end exclusive
+    }
+
+    compressWithFixedPass(indexMap, dataBuffer)
+    {
+        Buffer
+    }
+
     
 }
 
@@ -214,5 +387,17 @@ class Compressor
 Compressor.shiftDepths = [0, 4];
 
 Compressor.shiftInterStrDepths = [0, 4];
+
+// Buffer.prototype.writeBit = function(iByte, bit, value){
+//     if(value == 0){
+//         this[iByte] &= ~(1 << bit);
+//     }else{
+//         this[iByte] |= (1 << bit);
+//     }
+// }
+
+// Buffer.prototype.readBit = function(iByte, bit){
+//     return (this[iByte] >> bit) % 2;
+//   }
 
 module.exports = Compressor;
