@@ -13,6 +13,10 @@ class SmartBlock{
     {
         return this.text.toString('hex');
     }
+    get getBuffer()
+    {
+        return this.text;
+    }
 }
 
 SmartBlock.nextCode = 1;
