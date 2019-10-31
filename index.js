@@ -24,8 +24,8 @@ const SmartBlock = require('./smartBlock');
 // const block2 = Buffer.from("33322233332234", "ascii");
 // const block1 = Buffer.from("133311133331143", "ascii");
 // const block2 = Buffer.from("233322233332234", "ascii");
-//const block1 = Buffer.from("13338811133331143", "ascii");
-//const block2 = Buffer.from("233322233332234", "ascii");
+// const block1 = Buffer.from("13338811133331143", "ascii");
+// const block2 = Buffer.from("233322233332234", "ascii");
 
 
 ///trying to compress using bytes

@@ -228,11 +228,113 @@ class Compressor
         //console.log("smartBlocks", this.smartBlocks);
         //console.log("getDicBlocksInData ", this.getDicBlocksInData(this.data1.completeData));
 
-        let dicBlocksPresent = this.getDicBlocksInData(this.data1.completeData)
+        let dicBlocksPresent = this.getDicBlocksInData(this.data1.completeData);
+        dicBlocksPresent = this.getOrderedDicBlocksPresent(dicBlocksPresent);
+
         //console.log("getBlockClasses ", this.getBlockClasses(dicBlocksPresent, this.data1.completeData));
         let codeBlocksLength, dataBlocksLength, indexMap;
         [codeBlocksLength, dataBlocksLength, indexMap] = this.getBlockClasses(dicBlocksPresent, this.data1.completeData);
-        console.log("indexMap ", indexMap);
+        
+        //console.log("indexMap ", indexMap.map((d)=>{return d.type}));
+        //console.log("indexMap ", indexMap);
+        
+        this.compressFixedPassBlockType(indexMap, dicBlocksPresent, this.data1.completeData);
+    }
+
+    /*
+        for every eight bit, there is a bit to indicate type
+        0 - data block
+        1 - coded block
+
+        Structure
+        Endereços - Funcionalidade
+        0;8-1     - Indica se é 
+                    000 - Dado normal
+                    001 - Codificado
+                    010 - Dicionário
+                    ... - Talvez usamos para lempelZiv ou outra compressão ou para controle de diferentes dicionários
+        8;n+8+r-1   - Bits to indicate the type of the n following bytes
+        8+n+r-8+n+r+8n-1 - payload, containing the coded and data blocks
+
+    */
+    compressFixedPassBlockType(indexMap, dicBlocksPresent,  dataBuffer)
+    {
+        /// calculating the number of payload data (code blocks and raw data blocks - blocks = bytes in this case)
+        let nPayloadBytes = 0;
+        for (const multiBlock of indexMap) {
+            //every code block will fill just one byte
+            if(multiBlock.type == "code")
+            {
+                nPayloadBytes++;
+            }
+            else //on the other hand, every byte in data will fill one byte in the compressed data
+            {
+                nPayloadBytes += multiBlock.length;
+            }
+        }
+
+        ///number of necessary bytes to keep type control bits
+        let nTypesField = Math.ceil(nPayloadBytes/8);
+        /// 1 byte - controle ; Math.ceil(n/8) bytes - following byte types ; n bytes - payload containing the coded and raw data
+        let nTotalBytes = 1 + nTypesField + nPayloadBytes;
+        
+        let compressedData = Buffer.alloc(nTotalBytes);
+        let payloadBuf = Buffer.alloc(nPayloadBytes);
+
+        compressedData.writeInt8(1);//10 - dado codificado
+        //console.log("first compressedData byte: ", compressedData);
+        
+        let iControlBit = 0;
+        ///it must start at 2nd byte since 1st byte was used to indicate the message type
+        let iControlByte = 1;
+        let payloadByte = 0;
+        ///dicBlocksPresent is already ordered before calling this function
+        let pbIndex = 0
+        for (let index = 0; index < dataBuffer.length; index++)
+        {
+            for (; pbIndex < dicBlocksPresent.length; pbIndex++)
+            {
+                let presentBl = dicBlocksPresent[pbIndex];
+                ///while is data, and the next code block wasn't reached, add 0 to control-type bytes and add data to the auxiliar buffer
+                while(!this.isInsideTheBlock(presentBl, index))
+                {      
+                    ////// taking care of the type control bits
+                    compressedData.writeBit(iControlByte,iControlBit,0);
+                    iControlBit++;
+                    ///if a control byte was full, go to the next 
+                    if(iControlBit % 8 === 0) iControlByte++;
+                  
+                    payloadBuf[payloadByte] = dataBuffer[index];
+                    index++;
+                }
+
+                ////// taking care of the type control bits
+                compressedData.writeBit(iControlByte,iControlBit,1);
+                iControlBit++;
+                ///if a control byte was full, go to the next 
+                if(iControlBit % 8 === 0) iControlByte++;
+
+                payloadBuf.writeInt8(presentBl.block.getCodeInt, payloadByte);
+                payloadByte++;
+                index += presentBl.length;
+            }
+            
+            ////// taking care of the type control bits
+            compressedData.writeBit(iControlByte,iControlBit,0);
+            iControlBit++;
+            ///if a control byte was full, go to the next 
+            if(iControlBit % 8 === 0) iControlByte++;
+          
+            payloadBuf[payloadByte] = dataBuffer[index];
+            index++;
+        }
+        console.log("compressedData without payload: ", compressedData);
+        console.log("payloadBuf: ", payloadBuf);
+        compressedData = Buffer.concat([compressedData, payloadBuf]);
+        console.log("complete compressedData: ", compressedData);
+        return compressedData;
+        
+
     }
 
 
@@ -331,7 +433,8 @@ class Compressor
 
     getBlockClasses(dicBlocksPresent, dataBuffer)
     {
-        dicBlocksPresent = this.getOrderedDicBlocksPresent(dicBlocksPresent);
+        ///dicBlocksPresent is already ordered before calling this function
+        ///dicBlocksPresent = this.getOrderedDicBlocksPresent(dicBlocksPresent);
         let codeBlocksLength = [];
         let dataBlocksLength = [];
         let indexMap = [];
@@ -356,7 +459,10 @@ class Compressor
                 {
                     codeBlocksLength.push(blockLen);
                 }
-                indexMap.push( {length: blockLen, type: "coded"} );
+                presentBl.length = blockLen;
+                presentBl.type = "code"
+                indexMap.push( presentBl );
+                //indexMap.push( {length: blockLen, type: "code", block: presentBl} );
                 index += blockLen;
             }           
                        
@@ -375,11 +481,6 @@ class Compressor
         return (index >= presentBl.startIndex && index < presentBl.endIndex); ///end exclusive
     }
 
-    compressWithFixedPass(indexMap, dataBuffer)
-    {
-        Buffer
-    }
-
     
 }
 
@@ -388,13 +489,13 @@ Compressor.shiftDepths = [0, 4];
 
 Compressor.shiftInterStrDepths = [0, 4];
 
-// Buffer.prototype.writeBit = function(iByte, bit, value){
-//     if(value == 0){
-//         this[iByte] &= ~(1 << bit);
-//     }else{
-//         this[iByte] |= (1 << bit);
-//     }
-// }
+Buffer.prototype.writeBit = function(iByte, bit, value){
+    if(value == 0){
+        this[iByte] &= ~(1 << bit);
+    }else{
+        this[iByte] |= (1 << bit);
+    }
+}
 
 // Buffer.prototype.readBit = function(iByte, bit){
 //     return (this[iByte] >> bit) % 2;

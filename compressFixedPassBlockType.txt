@@ -1,0 +1,30 @@
+*/
+    compressFixedPassBlockType(indexMap, dataBuffer)
+    {
+        let nPayloadBytes = indexMap.length;
+        let nTypesField = Math.ceil(nPayloadBytes/8);
+        /// 1 byte - controle ; Math.ceil(n/8) bytes - following byte types ; n bytes - payload containing the coded and raw data
+        let nTotalBytes = 1 + nTypesField + nPayloadBytes;
+        
+        let compressedData = Buffer.alloc(nTotalBytes);
+        compressedData.writeInt8(1);//10 - dado codificado
+        console.log("first compressedData byte: ", compressedData);
+        let iBit, iByte;
+        for (let index = 0; index < indexMap.length; index++)
+        {
+            iBit = index % 8;
+            ///starting at the second bit
+            iByte = 1 + (index - iBit) / 8;
+
+            if(indexMap[index].type === "code")
+            {
+                compressedData.writeBit(iByte,iBit,1);
+            }         
+            else
+            {
+                compressedData.writeBit(iByte,iBit,0);
+            }        
+        }
+        console.log("second compressedData byte: ", compressedData);
+
+    }
