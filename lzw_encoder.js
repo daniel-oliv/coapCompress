@@ -52,13 +52,13 @@ lzw_decode: function(s) {
 },
 
 lzw_encode_Buf: function(buf) {
-    var dict = {};
+    var dict = [];
     var data = new Buffer();
-    data.c
-    opy(buf);
+    data.copy(buf);
     var out = [];
     var currChar;
-    var phrase = data[0];
+    var phrase = new Buffer();
+    phrase.writeInt8(data[0]);
     var code = 256;
     for (var i=1; i<data.length; i++) {
         currChar=data[i];
@@ -81,7 +81,7 @@ lzw_encode_Buf: function(buf) {
 
 // Decompress an LZW-encoded string
 lzw_decode_Buf: function(s) {
-    var dict = {};
+    var dict = [];
     var data = (s + "").split("");
     var currChar = data[0];
     var oldPhrase = currChar;
