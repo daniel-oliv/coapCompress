@@ -4,6 +4,7 @@ class Compressor
 {
     constructor(data1, data2)
     {
+        this.keepedMessages = [];
         ///this.data1 will never be smaller than this.data2
         if(data1.completeData.length > data2.completeData.length)
         {
@@ -26,6 +27,31 @@ class Compressor
         Compressor.shiftDepths.push(data1.completeData.length);
         Compressor.shiftInterStrDepths.push(data1.completeData.length);
     }
+
+    newMessage(msg)
+    {
+        let TYPE_MSG = {raw:0x02 , coded:0x01, dictionary: 0x02};
+        /// control type byte
+        let controlType = msg[0];
+        switch (controlType) {
+            case TYPE_MSG.raw:
+                
+                break;
+            case TYPE_MSG.coded:
+            
+                break;
+            case TYPE_MSG.dictionary:
+
+                break;
+        
+            default:
+                console.log("newMessage - switch Default")
+                break;
+        }
+    }
+
+
+    
 
     getDescendingSizeSmartBlocks()
     {
