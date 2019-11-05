@@ -20,9 +20,10 @@ const lzwEnc = require('./lzw_encoder.js');
 
 
 //+ lzw teste
-let strCoded = lzwEnc.lzw_encode(block2.toString('hex'));
+let strCoded = lzwEnc.lzw_encode(block1.toString('hex'));
 let strDecoded = lzwEnc.lzw_decode(strCoded);
 console.log("lzwEnc ",  strCoded);
+console.log("lzwDec ",  strDecoded);
 
 // const block1 = Buffer.from("33311133331143", "hex");
 // const block2 = Buffer.from("33322233332234", "hex");
