@@ -18,12 +18,32 @@ const lzwEnc = require('./lzw_encoder.js');
  const block1 = Buffer.from("00000001000614dda98326e300000800450000646ae040004011f6770a0062bd0a00627416441633005053084402000503020101b272644d0165703d7465737465646576696365086c743d383536373103623d55ff3c2f333331332f303e2c3c2f32363234322f303e2c3c2f32363234352f303e", "hex");
  const block2 = Buffer.from("00000001000614dda98326e30800080045000064130e400040114e4a0a0062bd0a00627416441633005053084402000503020101b272644d0165703d7465737465646576696365086c743d383536373103623d55ff3c2f333331332f303e2c3c2f32363234322f303e2c3c2f32363234352f303e", "hex");
 
+// //+ testing the concat and slice buffer, and if the includes works for
+//  var block4 = new Buffer(block1.slice(1,1+1));
+// var newPhrase;
+//  console.log("vf", block1[0]);
+//  console.log("vf", block4);
+//  console.log("vf", block1.slice(6,6+1));
+
+//  for (let index = 1; index < block1.length; index++) {
+//     block4.writeInt8(block1[index]);
+//  }
+//  const block3 = Buffer.from("00000001000614dda98326e30800080045000064130e400040114e4a0a0062bd0a00627416441633005053084402000503020101b272644d0165703d7465737465646576696365086c743d383536373103623d55ff3c2f333331332f303e2c3c2f32363234322f303e2c3c2f32363234352f303e", "hex");
+
+//  var arrayBuf = [];
+// arrayBuf = push(block1);
+// arrayBuf = push(block2);
+
+// console.log(arrayBuf.includes(block3));
 
 //+ lzw teste
 let strCoded = lzwEnc.lzw_encode(block1.toString('hex'));
 let strDecoded = lzwEnc.lzw_decode(strCoded);
-console.log("lzwEnc ",  strCoded);
-console.log("lzwDec ",  strDecoded);
+const buffer5 = Buffer.from(strDecoded, 'hex');
+console.log(buffer5);
+
+// console.log("lzwEnc ",  strCoded);
+console.log("buffer5 ",  buffer5.toString('hex'));
 
 // const block1 = Buffer.from("33311133331143", "hex");
 // const block2 = Buffer.from("33322233332234", "hex");
