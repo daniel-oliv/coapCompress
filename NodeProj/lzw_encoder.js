@@ -19,9 +19,12 @@ lzw_encode: function(s) {
         }
     }
     out.push(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
+    //console.log("out", out.concat())
     for (var i=0; i<out.length; i++) {
         out[i] = String.fromCharCode(out[i]);
     }
+    //console.log("out", out.concat())
+    //console.log("dict ", dict);
     return out.join("");
 },
 

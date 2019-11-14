@@ -38,11 +38,13 @@ const lzwEnc = require('./lzw_encoder.js');
 
 //+ lzw teste
 let strCoded = lzwEnc.lzw_encode(block1.toString('hex'));
+const bufDec =  Buffer.from(strDecoded, 'hex');
 let strDecoded = lzwEnc.lzw_decode(strCoded);
 const buffer5 = Buffer.from(strDecoded, 'hex');
 console.log(buffer5);
 
-// console.log("lzwEnc ",  strCoded);
+ console.log("strCoded ",  strCoded);
+ console.log("strDecoded ",  strDecoded);
 console.log("buffer5 ",  buffer5.toString('hex'));
 
 // const block1 = Buffer.from("33311133331143", "hex");
